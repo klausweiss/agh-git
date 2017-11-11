@@ -54,6 +54,55 @@ PATH=~/git/:\\\$PATH
 git http-backend \\\"\\\$@\\\"\
 "
 
+WEBAPP_CSS="
+body {
+    margin: 40px auto;
+    max-width: 650px;
+    line-height: 1.6;
+    font-size: 18px;
+    color: #587188;
+    padding: 0 10px;
+}
+
+* {
+    font-family: monospace;
+}
+
+ul, li {
+    margin: 0;
+    padding: 0;
+}
+
+li {
+    display: block;
+    list-style: none;
+    background-color: #ebf2fa;
+    padding: 1em;
+    margin-bottom: .4em;
+}
+
+li span {
+    display: inline-block;
+    width: 3em;
+}
+
+li input {
+    font-size: 16px;
+    padding: 2px;
+    width: calc(100% - 4.5em);
+}
+
+h2 {
+    margin: 0;
+    padding: 0;
+}
+
+footer {
+    font-size: .7em;
+    text-align: right;
+}
+"
+
 WEBAPP="\
 #!/usr/bin/python
 import os
@@ -68,35 +117,46 @@ def print_header():
     print '''
     <html><head>
     <title>$1's git repositories</title>
-    <style></style>
+    <style>$WEBAPP_CSS</style>
     </head><body><ul>
     '''
 
 def print_repository(name):
     print '''
     <li>
-        %s:<br/>
-        ssh: <input value='%s' /><br />
-        http: <input value='%s' />
+        <h2>%s</h2>
+        <div><span>ssh:</span> <input value='%s' /></div>
+        <div><span>http:</span> <input value='%s' /></div>
     </li>
     ''' % (name, get_ssh_link(name), get_http_link(name))
+
+def print_empty():
+    print '''
+    <li>
+        <h2>there are no repositories ):</h2>
+        <div>init one!</div>
+    </li>
+    '''
 
 def print_footer():
     print '''
     </ul>
-    powered by agh-git
+    <footer>powered by agh-git</footer>
     </body>
     </html>
     '''
 
 home = os.path.expanduser('~')
 repositories = [dir[:-4] for dir
-                in next(os.walk('%s/git' % home))[1]]
+                in next(os.walk('%s/git' % home))[1]
+                if dir.endswith('.git')]
 
 print 'Content-type: text/html\n\n'
 print_header()
-for repo in repositories:
+for repo in sorted(repositories):
     print_repository(repo)
+if not repositories:
+    print_empty()
 print_footer()
 "
 
