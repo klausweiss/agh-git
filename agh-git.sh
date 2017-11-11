@@ -82,7 +82,12 @@ def print_repository(name):
     ''' % (name, get_ssh_link(name), get_http_link(name))
 
 def print_footer():
-    print '</ul></body></html>'
+    print '''
+    </ul>
+    powered by agh-git
+    </body>
+    </html>
+    '''
 
 home = os.path.expanduser('~')
 repositories = [dir[:-4] for dir
