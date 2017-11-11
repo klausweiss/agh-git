@@ -24,6 +24,71 @@
 
 
 #=== FUNCTION ======================================================
+# NAME: show_clone_help
+# DESC: Show clone help message
+#===================================================================
+show_clone_help() {
+
+    echo "\
+Usage: $0 clone [OPTION] REPOSITORY_NAME user@hostname
+
+Clone repository from the server
+
+List of clone options:
+     --help         Display this help
+     --read         Clone read-only (using http)"
+}
+
+
+#=== FUNCTION ======================================================
+# NAME: show_init_server_help
+# DESC: Show init-server help message
+#===================================================================
+show_init_server_help() {
+
+    echo "\
+Usage: $0 init-server [OPTION] user@hostname
+
+Init git-related directories and files on the server
+
+List of clone options:
+     --help         Display this help"
+}
+
+#=== FUNCTION ======================================================
+# NAME: show_init_help
+# DESC: Show init help message
+#===================================================================
+show_init_help() {
+
+    echo "\
+Usage: $0 init [OPTION] REPOSITORY_NAME user@hostname
+
+Init git repository on the server
+
+List of clone options:
+     --help         Display this help"
+}
+
+#=== FUNCTION ======================================================
+# NAME: show_general_help
+# DESC: Show general help message
+#===================================================================
+show_general_help() {
+
+echo "\
+Usage: $0 COMMAND [OPTION] user@hostname
+
+List of available commands:
+     clone          Clone repository from the server
+     init           Init git repository on the server
+     init-server    Init git-related directories and files on the server
+
+List of options common for every command:
+     --help         Display help for selected command"
+}
+
+#=== FUNCTION ======================================================
 # NAME: init_server
 # DESC: Init git-related directories and files on the server
 #   $1: remote username
@@ -180,4 +245,62 @@ ssh -T $1@$2 <<EndOfInput
 EndOfInput
 }
 
-init_server $1 $2
+#=== FUNCTION ======================================================
+# NAME: handle_clone
+# DESC: Handles clone command
+#===================================================================
+handle_clone() {
+    show_clone_help
+    exit 0
+}
+
+#=== FUNCTION ======================================================
+# NAME: handle_init
+# DESC: Handles init command
+#===================================================================
+handle_init() {
+    show_init_help
+    exit 0
+}
+
+#=== FUNCTION ======================================================
+# NAME: handle_init_server
+# DESC: Handles init-server command
+#===================================================================
+handle_init_server() {
+    IFS="@" read USER HOST <<EOF
+$1
+EOF
+    if [ $USER = "--help" ]; then
+       show_init_server_help
+       exit 0
+    fi
+    init_server $USER $HOST
+    exit 0
+}
+
+
+COMMAND=$1
+case $COMMAND in
+    --help)
+        shift
+        show_general_help
+        exit 0
+        ;;
+    clone)
+        shift
+        handle_clone $@
+        ;;
+    init)
+        shift
+        handle_init $@
+        ;;
+    init-server)
+        shift
+        handle_init_server $@
+        ;;
+    *)
+        show_general_help
+        exit 1
+        ;;
+esac
