@@ -38,15 +38,36 @@ SetEnv GIT_HTTP_EXPORT_ALL
 
 RewriteEngine  on
 RewriteBase /~$1/
-RewriteRule ^git/(([a-zA-Z0-9._-]*.git/(HEAD|info/refs|objects/(info/[^/]+|[0-9a-f]{2}/[0-9a-f]{38}|pack/pack-[0-9a-f]{40}.(pack|idx))|git-(upload|receive)-pack)))$ __git/git.cgi/\\\$1\
+RewriteRule ^git/(([a-zA-Z0-9._-]*.git/(HEAD|info/refs|objects/(info/[^/]+|[0-9a-f]{2}/[0-9a-f]{38}|pack/pack-[0-9a-f]{40}.(pack|idx))|git-(upload|receive)-pack)))$ __git/git.cgi/\\\$1
+RewriteRule ^git/?$ __git/index.py
 
 # python cgi
-AddHandler cgi-script .py
+AddHandler cgi-script .py\
 "
+
+GIT_CGI="\
+#!/bin/sh
+
+PATH_TRANSLATED=~/git/\\\${PATH_TRANSLATED:24}
+
+PATH=~/git/:\\\$PATH
+git http-backend \\\"\\\$@\\\"\
+"
+
+WEBAPP="\
+#!/usr/bin/python
+import os
+print \\\"Content-type: text/html\n\n\\\"
+print \\\"eloelo\\\"\
+"
+
 ssh -T $1@$2 <<EndOfInput
     echo "$HTACCESS" > ~/public_html/.htaccess
     mkdir -p ~/public_html/__git
-    ln -s ~/public_html/__git ~/git
+    ln -sf -T ~/public_html/__git/ ~/git
+    echo "$WEBAPP" > ~/git/index.py
+    echo "$GIT_CGI" > ~/git/git.cgi
+    chmod 755 ~/git/index.py ~/git/git.cgi
 EndOfInput
 }
 
