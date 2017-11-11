@@ -57,8 +57,42 @@ git http-backend \\\"\\\$@\\\"\
 WEBAPP="\
 #!/usr/bin/python
 import os
-print \\\"Content-type: text/html\n\n\\\"
-print \\\"eloelo\\\"\
+
+def get_ssh_link(name):
+    return 'ssh://$1@$2/~/git/%s.git' % name
+
+def get_http_link(name):
+    return 'http://$2/~$1/git/%s.git' % name
+
+def print_header():
+    print '''
+    <html><head>
+    <title>$1's git repositories</title>
+    <style></style>
+    </head><body><ul>
+    '''
+
+def print_repository(name):
+    print '''
+    <li>
+        %s:<br/>
+        ssh: <input value='%s' /><br />
+        http: <input value='%s' />
+    </li>
+    ''' % (name, get_ssh_link(name), get_http_link(name))
+
+def print_footer():
+    print '</ul></body></html>'
+
+home = os.path.expanduser('~')
+repositories = [dir[:-4] for dir
+                in next(os.walk('%s/git' % home))[1]]
+
+print 'Content-type: text/html\n\n'
+print_header()
+for repo in repositories:
+    print_repository(repo)
+print_footer()
 "
 
 ssh -T $1@$2 <<EndOfInput
