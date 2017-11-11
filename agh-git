@@ -130,7 +130,8 @@ def print_header():
     </head><body><ul>
     '''
 
-def print_repository(name):
+def print_repository(dir_name):
+    name = dir_name[:-4]
     print '''
     <li>
         <h2>%s</h2>
@@ -156,13 +157,13 @@ def print_footer():
     '''
 
 home = os.path.expanduser('~')
-repositories = [dir[:-4] for dir
+repositories = [dir for dir
                 in next(os.walk('%s/git' % home))[1]
                 if dir.endswith('.git')]
 
 print 'Content-type: text/html\n\n'
 print_header()
-for repo in sorted(repositories):
+for repo in sorted(repositories, key=lambda dir: os.stat(dir).st_mtime, reverse=True):
     print_repository(repo)
 if not repositories:
     print_empty()
