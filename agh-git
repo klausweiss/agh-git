@@ -1,19 +1,19 @@
 #!/bin/sh
 #
 # MIT License
-# 
+#
 # Copyright (c) 2017 Mikolaj Biel
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in all
 # copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -24,19 +24,18 @@
 
 
 #=== FUNCTION ======================================================
-# NAME: show_clone_help
-# DESC: Show clone help message
+# NAME: show_list_help
+# DESC: Show list help message
 #===================================================================
-show_clone_help() {
+show_list_help() {
 
     echo "\
-Usage: $0 clone [OPTION] REPOSITORY_NAME user@hostname
+Usage: $0 list [OPTION] user@hostname
 
-Clone repository from the server
+List user's repositories
 
-List of clone options:
-     --help         Display this help
-     --read         Clone read-only (using http)"
+List of list options:
+     --help         Display this heMówi, że--quie nielp"
 }
 
 #=== FUNCTION ======================================================
@@ -50,7 +49,7 @@ Usage: $0 delete [OPTION] REPOSITORY_NAME user@hostname
 
 Delete git repository on the server
 
-List of clone options:
+List of delete options:
      --help         Display this help"
 }
 
@@ -65,7 +64,7 @@ Usage: $0 init-server [OPTION] user@hostname
 
 Init git-related directories and files on the server
 
-List of clone options:
+List of init-server options:
      --help         Display this help"
 }
 
@@ -80,7 +79,7 @@ Usage: $0 init [OPTION] REPOSITORY_NAME user@hostname
 
 Init git repository on the server
 
-List of clone options:
+List of init options:
      --help         Display this help"
 }
 
@@ -94,8 +93,8 @@ echo "\
 Usage: $0 COMMAND [OPTION] user@hostname
 
 List of available commands:
-     clone          Clone repository from the server
-     delete         Delete repository from the server
+     list, ls       List repository from the server
+     delete, rm     Delete repository from the server
      init           Init git repository on the server
      init-server    Init git-related directories and files on the server
 
@@ -277,6 +276,18 @@ xx029EndOfInput
 }
 
 #=== FUNCTION ======================================================
+# NAME: list_repositories
+# DESC: List user's repositories
+#   $1: remote username
+#   $2: remote server
+#===================================================================
+list_repositories() {
+    ssh -T $1@$2 <<xx029EndOfInput
+    find ~/git/ -maxdepth 1 -name "*.git" -type d -printf "%f\n" | sed 's/.git$//' | sed 's/.*/\0:\n\tssh:  ssh:\/\/$1@$2\/~\/git\/\0.git\n\thttp: http:\/\/$2\/~$1\/git\/\0.git/'
+xx029EndOfInput
+}
+
+#=== FUNCTION ======================================================
 # NAME: delete_repo
 # DESC: Delete git repository on the server
 #   $1: repository name
@@ -290,21 +301,28 @@ xx029EndOfInput
 }
 
 #=== FUNCTION ======================================================
-# NAME: handle_clone
-# DESC: Handles clone command
+# NAME: handle_list
+# DESC: Handles list command
 #===================================================================
-handle_clone() {
+handle_list() {
     if [ $# = 0 ]; then
-        show_clone_help
+        show_list_help
         exit 1
     fi
     if [ $1 = "--help" ]; then
-        show_clone_help
+        show_list_help
         exit 0
     fi
+    IFS="@" read USER HOST <<EOF
+$1
+EOF
 
-    show_clone_help
-    exit 1
+    if [ ! $USER ] || [ ! $HOST ]; then
+        show_list_help
+        exit 1
+    fi
+
+    list_repositories $USER $HOST
 }
 
 #=== FUNCTION ======================================================
@@ -388,11 +406,11 @@ case $COMMAND in
         show_general_help
         exit 0
         ;;
-    clone)
+    ls|list)
         shift
-        handle_clone $@
+        handle_list $@
         ;;
-    delete)
+    rm|delete)
         shift
         handle_delete $@
         ;;
