@@ -102,6 +102,7 @@ List of options common for every command:
      --help         Display help for selected command"
 }
 
+
 #=== FUNCTION ======================================================
 # NAME: init_server
 # DESC: Init git-related directories and files on the server
@@ -111,17 +112,25 @@ List of options common for every command:
 init_server() {
 
 HTACCESS="\
+# index files order
+DirectoryIndex index.py index.php index.html index.htm
+
 # git
-SetEnv GIT_PROJECT_ROOT ~/public_html/__git
+SetEnv GIT_PROJECT_ROOT ~/git
 SetEnv GIT_HTTP_EXPORT_ALL
 
 RewriteEngine  on
 RewriteBase /~$1/
 RewriteRule ^git/(([a-zA-Z0-9._-]*.git/(HEAD|info/refs|objects/(info/[^/]+|[0-9a-f]{2}/[0-9a-f]{38}|pack/pack-[0-9a-f]{40}.(pack|idx))|git-(upload|receive)-pack)))$ __git/git.cgi/\\\$1
-RewriteRule ^git/?$ __git/index.py
+RewriteRule ^git/?$ __git/
+RewriteRule ^git/(([a-zA-Z0-9._-]+/?)+)$ __git/repository_info.py
 
 # python cgi
 AddHandler cgi-script .py\
+"
+
+GIT_HTACCESS="\
+IndexIgnore *\
 "
 
 GIT_CGI="\
@@ -174,6 +183,10 @@ li input {
 h2 {
     margin: 0;
     padding: 0;
+}
+
+li > div:first-of-type {
+   margin-bottom: 2px;
 }
 
 footer {
@@ -256,6 +269,7 @@ ssh -T $1@$2 <<xx029EndOfInput
     echo "$WEBAPP" > ~/git/index.py
     echo "$GIT_CGI" > ~/git/git.cgi
     chmod 755 ~/git/index.py ~/git/git.cgi
+    echo "$GIT_HTACCESS" > ~/git/.htaccess
 xx029EndOfInput
 }
 
