@@ -24,18 +24,62 @@
 
 
 #=== FUNCTION ======================================================
+# NAME: show_help
+# DESC: Dispatch help function
+#   $1: [COMMAND] to show option for
+#===================================================================
+show_help() {
+    if [ $# = 0 ]; then
+        show_general_help
+        exit 0
+    fi
+    case $1 in
+        ls|list)
+            show_list_help
+            ;;
+        rm|delete)
+            show_delete_help
+            ;;
+        init)
+            show_init_help
+            ;;
+        init-server)
+            show_init_server_help
+            ;;
+        *)
+            show_general_help
+            exit 1
+            ;;
+    esac
+}
+
+#=== FUNCTION ======================================================
+# NAME: show_general_help
+# DESC: Show general help message
+#===================================================================
+show_general_help() {
+
+    echo "\
+Usage: $0 user@hostname COMMAND [OPTION]
+    or $0 --help [COMMAND]
+
+List of available commands:
+     list, ls       List repository from the server
+     delete, rm     Delete repository from the server
+     init           Init git repository on the server
+     init-server    Init git-related directories and files on the server"
+}
+
+#=== FUNCTION ======================================================
 # NAME: show_list_help
 # DESC: Show list help message
 #===================================================================
 show_list_help() {
 
     echo "\
-Usage: $0 list [OPTION] user@hostname
+Usage: $0 user@hostname list
 
-List user's repositories
-
-List of list options:
-     --help         Display this heMówi, że--quie nielp"
+List user's repositories"
 }
 
 #=== FUNCTION ======================================================
@@ -45,12 +89,9 @@ List of list options:
 show_delete_help() {
 
     echo "\
-Usage: $0 delete [OPTION] REPOSITORY_NAME user@hostname
+Usage: $0 user@hostname delete REPOSITORY_NAME
 
-Delete git repository on the server
-
-List of delete options:
-     --help         Display this help"
+Delete git repository on the server"
 }
 
 #=== FUNCTION ======================================================
@@ -60,12 +101,9 @@ List of delete options:
 show_init_server_help() {
 
     echo "\
-Usage: $0 init-server [OPTION] user@hostname
+Usage: $0 user@hostname init-server
 
-Init git-related directories and files on the server
-
-List of init-server options:
-     --help         Display this help"
+Init git-related directories and files on the server"
 }
 
 #=== FUNCTION ======================================================
@@ -75,31 +113,9 @@ List of init-server options:
 show_init_help() {
 
     echo "\
-Usage: $0 init [OPTION] REPOSITORY_NAME user@hostname
+Usage: $0 user@hostname init REPOSITORY_NAME
 
-Init git repository on the server
-
-List of init options:
-     --help         Display this help"
-}
-
-#=== FUNCTION ======================================================
-# NAME: show_general_help
-# DESC: Show general help message
-#===================================================================
-show_general_help() {
-
-echo "\
-Usage: $0 COMMAND [OPTION] user@hostname
-
-List of available commands:
-     list, ls       List repository from the server
-     delete, rm     Delete repository from the server
-     init           Init git repository on the server
-     init-server    Init git-related directories and files on the server
-
-List of options common for every command:
-     --help         Display help for selected command"
+Init git repository on the server" 
 }
 
 
@@ -317,99 +333,99 @@ xx029EndOfInput
 #=== FUNCTION ======================================================
 # NAME: handle_list
 # DESC: Handles list command
+#   $1: remote username
+#   $2: remote server
+#  $3+: additional OPTIONS
 #===================================================================
 handle_list() {
-    if [ $# = 0 ]; then
+    if [ ! $# = 2 ]; then
         show_list_help
         exit 1
     fi
-    if [ $1 = "--help" ]; then
-        show_list_help
-        exit 0
-    fi
-    IFS="@" read USER HOST <<EOF
-$1
-EOF
-
-    if [ ! $USER ] || [ ! $HOST ]; then
-        show_list_help
-        exit 1
-    fi
-
-    list_repositories $USER $HOST
+    list_repositories $1 $2
 }
 
 #=== FUNCTION ======================================================
 # NAME: handle_delete
 # DESC: Handles delete command
+#   $1: remote username
+#   $2: remote server
+#  $3+: additional OPTIONS
 #===================================================================
 handle_delete() {
-    if [ $# = 0 ]; then
-        show_delete_help
+    if [ $# -lt 3 ]; then
+        show_init_help
         exit 1
     fi
-    if [ $1 = "--help" ]; then
-        show_delete_help
-        exit 0
-    fi
-
-    NAME=$1
-    IFS="@" read USER HOST <<EOF
-$2
-EOF
-
-    if [ ! $NAME ] || [ ! $USER ] || [ ! $HOST ]; then
-        show_delete_help
-        exit 1
-    fi
-
-    delete_repo $NAME $USER $HOST
+    delete_repo $3 $1 $2
 }
 
 #=== FUNCTION ======================================================
 # NAME: handle_init
 # DESC: Handles init command
+#   $1: remote username
+#   $2: remote server
+#  $3+: additional OPTIONS
 #===================================================================
 handle_init() {
-    if [ $# = 0 ]; then
-        show_init_help
-        exit 1
-    fi
-    if [ $1 = "--help" ]; then
-        show_init_help
-        exit 0
-    fi
-
-    NAME=$1
-    IFS="@" read USER HOST <<EOF
-$2
-EOF
-
-    if [ ! $NAME ] || [ ! $USER ] || [ ! $HOST ]; then
+    if [ $# -lt 3 ]; then
         show_init_help
         exit 1
     fi
 
-    init_repo $NAME $USER $HOST
+    init_repo $3 $1 $2
 }
 
 #=== FUNCTION ======================================================
 # NAME: handle_init_server
 # DESC: Handles init-server command
+#   $1: remote username
+#   $2: remote server
+#  $3+: additional OPTIONS
 #===================================================================
-handle_init_server() { 
-    if [ $# = 0 ]; then
+handle_init_server() {
+    if [ ! $# = 2 ]; then
         show_init_server_help
         exit 1
     fi
-    if [ $1 = "--help" ]; then
-        show_init_server_help
-        exit 0
+    init_server $1 $2
+}
+
+#=== FUNCTION ======================================================
+# NAME: handle_command
+# DESC: Handles all commands
+#   $1: remote username
+#   $2: remote server
+#   $3: command
+#  $4+: additional OPTIONS
+#===================================================================
+handle_command() {
+    if [ $# -lt 3 ]; then
+        show_general_help
+        exit 1
     fi
-    IFS="@" read USER HOST <<EOF
-$1
-EOF
-    init_server $USER $HOST
+    USER=$1
+    HOST=$2
+    COMMAND=$3
+    shift; shift; shift
+
+    case $COMMAND in
+        ls|list)
+            handle_list $USER $HOST $@
+            ;;
+        rm|delete)
+            handle_delete $USER $HOST $@
+            ;;
+        init)
+            handle_init $USER $HOST $@
+            ;;
+        init-server)
+            handle_init_server $USER $HOST $@
+            ;;
+        *)
+            show_general_help
+            exit 1
+    esac
 }
 
 
@@ -417,27 +433,23 @@ COMMAND=$1
 case $COMMAND in
     --help)
         shift
-        show_general_help
+        show_help $@
         exit 0
         ;;
-    ls|list)
-        shift
-        handle_list $@
-        ;;
-    rm|delete)
-        shift
-        handle_delete $@
-        ;;
-    init)
-        shift
-        handle_init $@
-        ;;
-    init-server)
-        shift
-        handle_init_server $@
-        ;;
     *)
-        show_general_help
-        exit 1
+        if [ $# -lt 1 ]; then
+            show_general_help
+            exit 1
+        fi
+        IFS="@" read USER HOST <<EOF
+$1
+EOF
+        shift
+        if [ ! $USER ] || [ ! $HOST ]; then
+            show_general_help
+            exit 1
+        fi
+        handle_command $USER $HOST $@
+        exit 0
         ;;
 esac

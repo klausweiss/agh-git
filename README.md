@@ -20,7 +20,8 @@ Or manually - place the *[agh-git](https://github.com/klausweiss/agh-git/blob/ma
 **Warning!** This script (namely `init-server` function) changes `~/public_html/.htaccess` file on your server! If you do not know what `.htaccess` is, don't worry.
 
 
-    Usage: agh-git COMMAND [OPTION] user@hostname
+    Usage: agh-git user@hostname COMMAND [OPTION]
+        or agh-git --help [COMMAND]
 
     List of available commands:
         list, ls       List repository from the server
@@ -28,17 +29,14 @@ Or manually - place the *[agh-git](https://github.com/klausweiss/agh-git/blob/ma
         init           Init git repository on the server
         init-server    Init git-related directories and files on the server
 
-    List of options common for every command:
-        --help         Display help for selected command
-
 
 To initialize a git server on the server connect to your universities network and execute the following once:
 
-    agh-git init-server you@student.university.edu
+    agh-git you@student.university.edu init-server
     
 To add an empty repository execute the following after initializing a git server:
 
-    agh-git init sample-repo you@student.university.edu
+    agh-git you@student.university.edu init sample-repo
     
 To see your repositories go to `http://student.university.edu/~you/git`
 
