@@ -219,7 +219,7 @@ a:hover {
 }
 "
 
-WEBAPP="\
+WEBAPP_INDEX="\
 #!/usr/bin/python
 import os
 
@@ -278,13 +278,47 @@ if not repositories:
 print_footer()
 "
 
+WEBAPP_REPO="\
+#!/usr/bin/python
+import os
+
+def get_ssh_link(name):
+    return 'ssh://$1@$2/~/git/%s.git' % name
+
+def get_http_link(name):
+    return 'http://$2/~$1/git/%s.git' % name
+
+def print_header():
+    print '''
+    <html><head>
+    <title>[REPOSITORY_NAME] @ $1's git</title>
+    <style>$WEBAPP_CSS</style>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    </head><body>
+    '''
+
+def print_footer():
+    print '''
+    <footer>powered by <a href='https://github.com/klausweiss/agh-git/'>agh-git</a></footer>
+    </body>
+    </html>
+    '''
+
+request_uri = os.environ.get('REQUEST_URI')
+print 'Content-type: text/html\n\n'
+print_header()
+print 'Request uri: %s' % request_uri
+print_footer()
+"
+
 ssh -T $1@$2 <<xx029EndOfInput
     echo "$HTACCESS" > ~/public_html/.htaccess
     mkdir -p ~/public_html/__git
     ln -sf -T ~/public_html/__git/ ~/git
-    echo "$WEBAPP" > ~/git/index.py
+    echo "$WEBAPP_INDEX" > ~/git/index.py
+    echo "$WEBAPP_REPO" > ~/git/repository_info.py
     echo "$GIT_CGI" > ~/git/git.cgi
-    chmod 755 ~/git/index.py ~/git/git.cgi
+    chmod 755 ~/git/index.py ~/git/git.cgi ~/git/repository_info.py
     echo "$GIT_HTACCESS" > ~/git/.htaccess
 xx029EndOfInput
 }
