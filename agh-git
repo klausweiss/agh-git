@@ -300,6 +300,7 @@ xx029EndOfInput
 init_repo() {
     ssh -T $2@$3 <<xx029EndOfInput
     git init --bare ~/git/$1.git > /dev/null
+    touch ~/git/$1.git/git-daemon-export-ok
 xx029EndOfInput
     echo "ssh:  ssh://$2@$3/~/git/$1.git"
     echo "http: http://$3/~$2/git/$1.git"
