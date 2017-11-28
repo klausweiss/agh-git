@@ -6,13 +6,13 @@ agh-git is a shell script that adds a git server functionality to the linux acco
 
 Using `curl`:
 
-    curl -L https://raw.githubusercontent.com/klausweiss/agh-git/0.1.1/install.sh | sh
+    curl -L https://raw.githubusercontent.com/klausweiss/agh-git/master/install.sh | sh
     
 Or using `wget`:
 
-    wget -qO- https://raw.githubusercontent.com/klausweiss/agh-git/0.1.1/install.sh | sh
+    wget -qO- https://raw.githubusercontent.com/klausweiss/agh-git/master/install.sh | sh
     
-Or manually - place the *[agh-git](https://github.com/klausweiss/agh-git/blob/0.1.1/agh-git)* file into one of the directories in your `$PATH` variable (eg. `/usr/local/bin`).
+Or manually - place the *[agh-git](https://github.com/klausweiss/agh-git/blob/master/agh-git)* file into one of the directories in your `$PATH` variable (eg. `/usr/local/bin`).
 
 
 ## usage
