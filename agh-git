@@ -252,7 +252,7 @@ def print_empty():
     print '''
     <li>
         <h2>there are no repositories ):</h2>
-        <div>init one!</div>
+        <div>start working on something!</div>
     </li>
     '''
 
@@ -288,14 +288,16 @@ def get_ssh_link(name):
 def get_http_link(name):
     return 'http://$2/~$1/git/%s.git' % name
 
-def print_header():
-    print '''
+def print_header(repository_name):
+    print ('''
     <html><head>
-    <title>[REPOSITORY_NAME] @ $1's git</title>
+    <title>'''
+    + repository_name +
+    ''' @ $1's git</title>
     <style>$WEBAPP_CSS</style>
     <meta name='viewport' content='width=device-width, initial-scale=1.0'>
     </head><body>
-    '''
+    ''')
 
 def print_footer():
     print '''
@@ -304,10 +306,21 @@ def print_footer():
     </html>
     '''
 
+def print_tree_or_file(repository_name, branch, requested_object):
+    print repository_name, branch, requested_object
+
+
 request_uri = os.environ.get('REQUEST_URI')
+repository_name = request_uri.split('/')[3]
+branch = request_uri.count('/') > 3 and request_uri.split('/')[4] or None
+requested_object = '/'.join(request_uri.split('/')[5:])
+
+home = os.path.expanduser('~')
+basepath = '%s/git/%s.git' % (home, repository_name)
+
 print 'Content-type: text/html\n\n'
-print_header()
-print 'Request uri: %s' % request_uri
+print_header(repository_name)
+print_tree_or_file(repository_name, branch, requested_object)
 print_footer()
 "
 
