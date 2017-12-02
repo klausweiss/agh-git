@@ -234,6 +234,16 @@ header {
    margin-bottom: .2em;
 }
 
+header h2 {
+    width: calc(100% - 5em);
+    display: inline-block;
+}
+
+header select {
+    width: 6em;
+    font-size: 1em;
+}
+
 footer {
     font-size: .7em;
     text-align: right;
@@ -482,14 +492,24 @@ def print_js_libraries():
 def print_error(e):
     print e
 
-def print_repo_header(branch, repository_name):
+def print_repo_header(basepath, branch, repository_name):
+    branches = list_branches(basepath)
+    if not branch:
+        branch = branches[0]
     print '''
     <header>
         <h2>%s</h2>
+        <select onchange='location = \\\"%s/\\\" + this.value'>
+            %s
+        </select>
         <div><span>ssh:</span> <input value='%s' readonly=true onClick='this.select();' /></div>
         <div><span>http:</span> <input value='%s' readonly=true onClick='this.select();' /></div>
     </header>
-    ''' % (repository_name, get_ssh_link(repository_name), get_http_link(repository_name))
+    ''' % (repository_name,
+           get_http_link_base(repository_name),
+          '\n'.join(['<option value=\'%s\' %s>%s</option>' % (_branch, _branch == branch and 'selected' or '', _branch) for _branch in branches]),
+           get_ssh_link(repository_name),
+           get_http_link(repository_name))
 
 request_uri = os.environ.get('REQUEST_URI')
 repository_name = request_uri.split('/')[3]
@@ -502,7 +522,7 @@ basepath = '%s/git/%s.git' % (home, repository_name)
 print 'Content-type: text/html\n\n'
 print_header(requested_object, branch, repository_name)
 if not requested_object:
-    print_repo_header(branch, repository_name)
+    print_repo_header(basepath, branch, repository_name)
 print_tree_or_file(basepath, branch, requested_object, repository_name)
 print_footer()
 "
