@@ -395,21 +395,24 @@ def print_tree(basepath, branch, path, repository_name):
     tree = ls_tree(branch, path, basepath)
     directories = sorted([name for is_dir, name in tree if is_dir])
     files = sorted([name for is_dir, name in tree if not is_dir])
-    list_directories(directories, path, repository_name)
-    list_files(files, repository_name)
+    list_directories(directories, branch, path, repository_name)
+    list_files(files, branch, repository_name)
 
-def list_directories(directories, path, repository_name):
+def list_directories(directories, branch, path, repository_name):
     print '<ul class=\'tree directories\'>'
+    if path:
+        link = '%s/%s/%s/..' % (get_http_link_base(repository_name), branch, path.strip('/'))
+        print '<li><a href=\'%s\'>..</a></li>' % link
     for dir in directories:
-        print '<li><a href=\'%s\'>%s</a></li>' % ('%s/%s' % (get_http_link_base(repository_name), path),
-                                                  dir)
+        link = '%s/%s/%s' % (get_http_link_base(repository_name), branch, dir)
+        print '<li><a href=\'%s\'>%s</a></li>' % (link, dir)
     print '</ul>'
 
-def list_files(files, repository_name):
+def list_files(files, branch, repository_name):
     print '<ul class=\'tree files\'>'
     for file in files:
-        print '<li><a href=\'%s\'>%s</a></li>' % ('%s/' % get_http_link_base(repository_name),
-                                                  file)
+        link = '%s/%s/%s' % (get_http_link_base(repository_name), branch, file)
+        print '<li><a href=\'%s\'>%s</a></li>' % (link, file)
     print '</ul>'
 
 
