@@ -368,6 +368,8 @@ def get_http_link(name):
 def title(requested_object, branch, repository_name):
     if requested_object:
         return '%s @ %s (%s at $1\'s git)' % (requested_object, branch, repository_name)
+    elif not branch:
+        return '%s at $1\'s git' % repository_name
     else:
         return '%s@%s at $1\'s git' % (branch, repository_name)
 
@@ -440,6 +442,9 @@ def print_js_libraries():
           href=\'//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css\'>
           <script src=\'//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js\'></script>
           <script>hljs.initHighlightingOnLoad();</script>
+          <!-- custom languages -->
+          <!-- haskell -->
+          <script src=\'//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/languages/haskell.min.js\'></script>
           '''
 
 def print_error(e):
