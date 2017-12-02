@@ -180,9 +180,6 @@ ul, li {
 li {
     display: block;
     list-style: none;
-    background-color: #ebf2fa;
-    padding: 1em;
-    margin-bottom: .4em;
 }
 
 li span {
@@ -194,6 +191,30 @@ li input {
     font-size: 16px;
     padding: 2px;
     width: calc(100% - 4.5em);
+}
+
+ul.repositories li {
+    padding: 1em;
+    margin-bottom: .4em;
+}
+
+ul.tree li {
+    margin-bottom: .2em;
+}
+
+ul.tree li a {
+    display: block;
+    padding: .3em .6em;
+    text-decoration: none;
+}
+
+ul.tree li:hover {
+    background-color: #dce8f5 !important;
+}
+
+ul.repositories li,
+ul.tree.directories li {
+    background-color: #ebf2fa;
 }
 
 h2 {
@@ -235,7 +256,7 @@ def print_header():
     <title>$1's git repositories</title>
     <style>$WEBAPP_CSS</style>
     <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-    </head><body><ul>
+    </head><body><ul class=\'repositories\'>
     '''
 
 def print_repository(dir_name):
@@ -304,7 +325,7 @@ def list_branches(cwd=None):
 def ls_tree(branch, path='', cwd=None):
     if path:
         path += '/'
-    return [(item[1] == 'tree', item[2], item[3])
+    return [(item[1] == 'tree', item[3])
             for item
             in [rawItem.split() for rawItem in sh('git ls-tree %s %s' % (branch, path), cwd=cwd)]]
 
@@ -328,15 +349,24 @@ def is_dir(branch, path, cwd=None):
 def get_ssh_link(name):
     return 'ssh://$1@$2/~/git/%s.git' % name
 
+def get_http_link_base(name):
+    return 'http://$2/~$1/git/%s' % name
+
 def get_http_link(name):
     return 'http://$2/~$1/git/%s.git' % name
 
-def print_header(repository_name):
+def title(requested_object, branch, repository_name):
+    if requested_object:
+        return '%s @ %s (%s at $1\'s git)' % (requested_object, branch, repository_name)
+    else:
+        return '%s@%s at $1\'s git' % (branch, repository_name)
+
+def print_header(requested_object, branch, repository_name):
     print ('''
     <html><head>
     <title>'''
-    + repository_name +
-    ''' @ $1's git</title>
+    + title(requested_object, branch, repository_name) +
+    '''</title>
     <style>$WEBAPP_CSS</style>
     <meta name='viewport' content='width=device-width, initial-scale=1.0'>
     </head><body>
@@ -349,28 +379,46 @@ def print_footer():
     </html>
     '''
 
-def print_tree(basepath, branch, path):
-    tree = ls_tree(branch, path, basepath)
-    print '<br />'.join(str(row) for row in tree)
-
-def print_file(basepath, branch, path):
-    contents = file_contents(branch, path, basepath)
-    print contents
-
-def print_error(e):
-    print e
-
-def print_tree_or_file(basepath, branch, requested_object):
+def print_tree_or_file(basepath, branch, requested_object, repository_name):
     try:
         if branch is None:
             branch = list_branches(basepath)[0]
 
         if is_dir(branch, requested_object, basepath) or not requested_object:
-            print_tree(basepath, branch, requested_object)
+            print_tree(basepath, branch, requested_object, repository_name)
         else:
-            print_file(basepath, branch, requested_object)
+            print_file(basepath, branch, requested_object, repository_name)
     except Exception as e:
         print_error(e)
+
+def print_tree(basepath, branch, path, repository_name):
+    tree = ls_tree(branch, path, basepath)
+    directories = sorted([name for is_dir, name in tree if is_dir])
+    files = sorted([name for is_dir, name in tree if not is_dir])
+    list_directories(directories, path, repository_name)
+    list_files(files, repository_name)
+
+def list_directories(directories, path, repository_name):
+    print '<ul class=\'tree directories\'>'
+    for dir in directories:
+        print '<li><a href=\'%s\'>%s</a></li>' % ('%s/%s' % (get_http_link_base(repository_name), path),
+                                                  dir)
+    print '</ul>'
+
+def list_files(files, repository_name):
+    print '<ul class=\'tree files\'>'
+    for file in files:
+        print '<li><a href=\'%s\'>%s</a></li>' % ('%s/' % get_http_link_base(repository_name),
+                                                  file)
+    print '</ul>'
+
+
+def print_file(basepath, branch, path, repository_name):
+    contents = file_contents(branch, path, basepath)
+    print contents
+
+def print_error(e):
+    print e
 
 
 request_uri = os.environ.get('REQUEST_URI')
@@ -382,8 +430,8 @@ home = os.path.expanduser('~')
 basepath = '%s/git/%s.git' % (home, repository_name)
 
 print 'Content-type: text/html\n\n'
-print_header(repository_name)
-print_tree_or_file(basepath, branch, requested_object)
+print_header(requested_object, branch, repository_name)
+print_tree_or_file(basepath, branch, requested_object, repository_name)
 print_footer()
 "
 
