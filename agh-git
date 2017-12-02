@@ -182,12 +182,14 @@ li {
     list-style: none;
 }
 
-li span {
+li span,
+header span {
     display: inline-block;
     width: 3em;
 }
 
-li input {
+li input,
+header input {
     font-size: 16px;
     padding: 2px;
     width: calc(100% - 4.5em);
@@ -208,7 +210,8 @@ ul.tree li a {
     text-decoration: none;
 }
 
-ul.tree li:hover {
+ul.tree li:hover,
+header {
     background-color: #dce8f5 !important;
 }
 
@@ -224,6 +227,11 @@ h2 {
 
 li > div:first-of-type {
    margin-bottom: 2px;
+}
+
+header {
+   padding: 1em;
+   margin-bottom: .2em;
 }
 
 footer {
@@ -474,6 +482,14 @@ def print_js_libraries():
 def print_error(e):
     print e
 
+def print_repo_header(branch, repository_name):
+    print '''
+    <header>
+        <h2>%s</h2>
+        <div><span>ssh:</span> <input value='%s' readonly=true onClick='this.select();' /></div>
+        <div><span>http:</span> <input value='%s' readonly=true onClick='this.select();' /></div>
+    </header>
+    ''' % (repository_name, get_ssh_link(repository_name), get_http_link(repository_name))
 
 request_uri = os.environ.get('REQUEST_URI')
 repository_name = request_uri.split('/')[3]
@@ -485,6 +501,8 @@ basepath = '%s/git/%s.git' % (home, repository_name)
 
 print 'Content-type: text/html\n\n'
 print_header(requested_object, branch, repository_name)
+if not requested_object:
+    print_repo_header(branch, repository_name)
 print_tree_or_file(basepath, branch, requested_object, repository_name)
 print_footer()
 "
