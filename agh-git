@@ -281,6 +281,49 @@ print_footer()
 WEBAPP_REPO="\
 #!/usr/bin/python
 import os
+import shlex
+import subprocess as sp
+
+
+# ########################################################################## git
+
+
+def sh(command, cwd=None, lines=True):
+    output = sp.Popen(shlex.split(command), stdout=sp.PIPE,
+                      stderr=sp.PIPE, cwd=cwd).communicate()[0]
+    if lines:
+        return output.split('\n')[:-1]
+    else:
+        return output
+
+
+def list_branches(cwd=None):
+    return [branch[2:] for branch in sorted(sh('git branch', cwd), reverse=True)]
+
+
+def ls_tree(branch, path='', cwd=None):
+    if path:
+        path += '/'
+    return [(item[1] == 'tree', item[2], item[3])
+            for item
+            in [rawItem.split() for rawItem in sh('git ls-tree %s %s' % (branch, path), cwd=cwd)]]
+
+
+def get_object_hash(branch, path, cwd=None):
+    return sh('git ls-tree %s %s' % (branch, path), cwd=cwd)[0].split()[2]
+
+
+def file_contents(branch, path, cwd=None):
+    object_hash = get_object_hash(branch, path, cwd)
+    return sh('git cat-file -p %s' % object_hash, cwd=cwd, lines=False)
+
+
+def is_dir(branch, path, cwd=None):
+    return sh('git ls-tree %s %s' % (branch, path.strip('/')), cwd=cwd)[0].split()[1] == 'tree'
+
+
+# ########################################################################## rendering
+
 
 def get_ssh_link(name):
     return 'ssh://$1@$2/~/git/%s.git' % name
@@ -306,8 +349,28 @@ def print_footer():
     </html>
     '''
 
-def print_tree_or_file(repository_name, branch, requested_object):
-    print repository_name, branch, requested_object
+def print_tree(basepath, branch, path):
+    tree = ls_tree(branch, path, basepath)
+    print '<br />'.join(str(row) for row in tree)
+
+def print_file(basepath, branch, path):
+    contents = file_contents(branch, path, basepath)
+    print contents
+
+def print_error(e):
+    print e
+
+def print_tree_or_file(basepath, branch, requested_object):
+    try:
+        if branch is None:
+            branch = list_branches(basepath)[0]
+
+        if is_dir(branch, requested_object, basepath) or not requested_object:
+            print_tree(basepath, branch, requested_object)
+        else:
+            print_file(basepath, branch, requested_object)
+    except Exception as e:
+        print_error(e)
 
 
 request_uri = os.environ.get('REQUEST_URI')
@@ -320,7 +383,7 @@ basepath = '%s/git/%s.git' % (home, repository_name)
 
 print 'Content-type: text/html\n\n'
 print_header(repository_name)
-print_tree_or_file(repository_name, branch, requested_object)
+print_tree_or_file(basepath, branch, requested_object)
 print_footer()
 "
 
