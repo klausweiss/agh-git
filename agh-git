@@ -193,6 +193,16 @@ header input {
     font-size: 16px;
     padding: 2px;
     width: calc(100% - 4.5em);
+    cursor: default;
+}
+
+a.repo {
+    text-decoration: none;
+}
+
+a.repo:focus li,
+a.repo:hover li {
+    background-color: #dce8f5;
 }
 
 ul.repositories li {
@@ -211,6 +221,7 @@ ul.tree li a {
 }
 
 ul.tree li:hover,
+ul.tree li a:focus,
 header {
     background-color: #dce8f5 !important;
 }
@@ -301,6 +312,9 @@ import os
 def get_ssh_link(name):
     return 'ssh://$1@$2/~/git/%s.git' % name
 
+def get_http_link_base(name):
+    return 'http://$2/~$1/git/%s' % name
+
 def get_http_link(name):
     return 'http://$2/~$1/git/%s.git' % name
 
@@ -316,12 +330,12 @@ def print_header():
 def print_repository(dir_name):
     name = dir_name[:-4]
     print '''
-    <li>
+    <a class='repo' href='%s'><li>
         <h2>%s</h2>
-        <div><span>ssh:</span> <input value='%s' readonly=true onClick='this.select();' /></div>
-        <div><span>http:</span> <input value='%s' readonly=true onClick='this.select();' /></div>
-    </li>
-    ''' % (name, get_ssh_link(name), get_http_link(name))
+        <div><span>ssh:</span> <input value='%s' readonly=true onClick='this.select(); return false;' /></div>
+        <div><span>http:</span> <input value='%s' readonly=true onClick='this.select(); return false;' /></div>
+    </li></a>
+    ''' % (get_http_link_base(name), name, get_ssh_link(name), get_http_link(name))
 
 def print_empty():
     print '''
@@ -390,7 +404,7 @@ def get_object_hash(branch, path, cwd=None):
 
 def file_contents(branch, path, cwd=None):
     object_hash = get_object_hash(branch, path, cwd)
-    return sh('git cat-file -p %s' % object_hash, cwd=cwd, lines=False)
+    return sh('git cat-file -p %s' % object_hash, cwd=cwd, lines=False)[:-1]
 
 
 def is_dir(branch, path, cwd=None):
@@ -473,7 +487,7 @@ def list_files(files, branch, repository_name):
 
 
 def print_file(basepath, branch, path, repository_name):
-    contents = file_contents(branch, path, basepath)
+    contents = file_contents(branch, path, basepath).replace('<', '&lt;').replace('>', '&gt;')
     print '''<style>$WEBAPP_CODE_CSS</style>'''
     print '<pre><code>%s</code></pre>' % contents
     print_js_libraries()
