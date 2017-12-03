@@ -206,7 +206,8 @@ a.repo:hover li {
     background-color: #dce8f5;
 }
 
-ul.repositories li {
+ul.repositories li,
+div.error {
     padding: 1em;
     margin-bottom: .4em;
 }
@@ -228,7 +229,8 @@ header {
 }
 
 ul.repositories li,
-ul.tree.directories li {
+ul.tree.directories li,
+div.error {
     background-color: #ebf2fa;
 }
 
@@ -507,6 +509,13 @@ def print_js_libraries():
 def print_error(e):
     print e
 
+def print_no_such_repo():
+    print '''
+    <div class='error'>
+        <h2>repository not found ):</h2>
+    </div>
+    '''
+
 def print_repo_header(basepath, branch, repository_name):
     branches = list_branches(basepath)
     if not branch:
@@ -536,9 +545,12 @@ basepath = '%s/git/%s.git' % (home, repository_name)
 
 print 'Content-type: text/html\n\n'
 print_header(requested_object, branch, repository_name)
-if not requested_object:
-    print_repo_header(basepath, branch, repository_name)
-print_tree_or_file(basepath, branch, requested_object, repository_name)
+try:
+    if not requested_object:
+        print_repo_header(basepath, branch, repository_name)
+    print_tree_or_file(basepath, branch, requested_object, repository_name)
+except Exception as e:
+        print_no_such_repo()
 print_footer()
 "
 
