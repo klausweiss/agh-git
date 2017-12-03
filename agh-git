@@ -139,6 +139,7 @@ RewriteEngine  on
 RewriteBase /~$1/
 RewriteRule ^git/(([a-zA-Z0-9._-]*.git/(HEAD|info/refs|objects/(info/[^/]+|[0-9a-f]{2}/[0-9a-f]{38}|pack/pack-[0-9a-f]{40}.(pack|idx))|git-(upload|receive)-pack)))$ __git/git.cgi/\\\$1
 RewriteRule ^git/?$ __git/
+RewriteRule ^git/([a-zA-Z0-9._-]+).git$ git/\\\$1 [R]
 RewriteRule ^git/(([a-zA-Z0-9._-]+/?)+)$ __git/repository_info.py
 
 # python cgi
@@ -180,20 +181,57 @@ ul, li {
 li {
     display: block;
     list-style: none;
-    background-color: #ebf2fa;
-    padding: 1em;
-    margin-bottom: .4em;
 }
 
-li span {
+li span,
+header span {
     display: inline-block;
     width: 3em;
 }
 
-li input {
+li input,
+header input {
     font-size: 16px;
     padding: 2px;
     width: calc(100% - 4.5em);
+    cursor: default;
+}
+
+a.repo {
+    text-decoration: none;
+}
+
+a.repo:focus li,
+a.repo:hover li {
+    background-color: #dce8f5;
+}
+
+ul.repositories li,
+div.error {
+    padding: 1em;
+    margin-bottom: .4em;
+}
+
+ul.tree li {
+    margin-bottom: .2em;
+}
+
+ul.tree li a {
+    display: block;
+    padding: .3em .6em;
+    text-decoration: none;
+}
+
+ul.tree li:hover,
+ul.tree li a:focus,
+header {
+    background-color: #dce8f5 !important;
+}
+
+ul.repositories li,
+ul.tree.directories li,
+div.error {
+    background-color: #ebf2fa;
 }
 
 h2 {
@@ -203,6 +241,21 @@ h2 {
 
 li > div:first-of-type {
    margin-bottom: 2px;
+}
+
+header {
+   padding: 1em;
+   margin-bottom: .2em;
+}
+
+header h2 {
+    width: calc(100% - 5em);
+    display: inline-block;
+}
+
+header select {
+    width: 6em;
+    font-size: 1em;
 }
 
 footer {
@@ -219,12 +272,51 @@ a:hover {
 }
 "
 
-WEBAPP="\
+WEBAPP_CODE_CSS="\
+body {
+     max-width: 1200px;
+}
+
+code {
+     font-size: 14px;
+}
+td.hljs-ln-numbers {
+    text-align: center;
+    color: #ccc;
+    border-right: 1px solid #999;
+    vertical-align: top;
+    padding-right: 5px;
+
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+td.hljs-ln-code {
+    padding-left: 10px;
+}
+
+code {
+    white-space: pre-wrap;
+    overflow: auto;
+}
+
+pre > code div {
+    white-space: pre-wrap;
+}
+"
+
+WEBAPP_INDEX="\
 #!/usr/bin/python
 import os
 
 def get_ssh_link(name):
     return 'ssh://$1@$2/~/git/%s.git' % name
+
+def get_http_link_base(name):
+    return 'http://$2/~$1/git/%s' % name
 
 def get_http_link(name):
     return 'http://$2/~$1/git/%s.git' % name
@@ -235,24 +327,24 @@ def print_header():
     <title>$1's git repositories</title>
     <style>$WEBAPP_CSS</style>
     <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-    </head><body><ul>
+    </head><body><ul class=\'repositories\'>
     '''
 
 def print_repository(dir_name):
     name = dir_name[:-4]
     print '''
-    <li>
+    <a class='repo' href='%s'><li>
         <h2>%s</h2>
-        <div><span>ssh:</span> <input value='%s' readonly=true onClick='this.select();' /></div>
-        <div><span>http:</span> <input value='%s' readonly=true onClick='this.select();' /></div>
-    </li>
-    ''' % (name, get_ssh_link(name), get_http_link(name))
+        <div><span>ssh:</span> <input value='%s' readonly=true onClick='this.select(); return false;' /></div>
+        <div><span>http:</span> <input value='%s' readonly=true onClick='this.select(); return false;' /></div>
+    </li></a>
+    ''' % (get_http_link_base(name), name, get_ssh_link(name), get_http_link(name))
 
 def print_empty():
     print '''
     <li>
         <h2>there are no repositories ):</h2>
-        <div>init one!</div>
+        <div>start working on something!</div>
     </li>
     '''
 
@@ -278,13 +370,198 @@ if not repositories:
 print_footer()
 "
 
+WEBAPP_REPO="\
+#!/usr/bin/python
+import os
+import shlex
+import subprocess as sp
+
+
+# ########################################################################## git
+
+
+def sh(command, cwd=None, lines=True):
+    output = sp.Popen(shlex.split(command), stdout=sp.PIPE,
+                      stderr=sp.PIPE, cwd=cwd).communicate()[0]
+    if lines:
+        return output.split('\n')[:-1]
+    else:
+        return output
+
+
+def list_branches(cwd=None):
+    return [branch[2:] for branch in sorted(sh('git branch', cwd), reverse=True)]
+
+
+def ls_tree(branch, path='', cwd=None):
+    if path:
+        path += '/'
+    return [(item[1] == 'tree', item[3])
+            for item
+            in [rawItem.split() for rawItem in sh('git ls-tree %s %s' % (branch, path), cwd=cwd)]]
+
+
+def get_object_hash(branch, path, cwd=None):
+    return sh('git ls-tree %s %s' % (branch, path), cwd=cwd)[0].split()[2]
+
+
+def file_contents(branch, path, cwd=None):
+    object_hash = get_object_hash(branch, path, cwd)
+    return sh('git cat-file -p %s' % object_hash, cwd=cwd, lines=False)[:-1]
+
+
+def is_dir(branch, path, cwd=None):
+    return sh('git ls-tree %s %s' % (branch, path.strip('/')), cwd=cwd)[0].split()[1] == 'tree'
+
+
+# ########################################################################## rendering
+
+
+def get_ssh_link(name):
+    return 'ssh://$1@$2/~/git/%s.git' % name
+
+def get_http_link_base(name):
+    return 'http://$2/~$1/git/%s' % name
+
+def get_http_link(name):
+    return 'http://$2/~$1/git/%s.git' % name
+
+def title(requested_object, branch, repository_name):
+    if requested_object:
+        return '%s @ %s (%s at $1\'s git)' % (requested_object, branch, repository_name)
+    elif not branch:
+        return '%s at $1\'s git' % repository_name
+    else:
+        return '%s@%s at $1\'s git' % (branch, repository_name)
+
+def print_header(requested_object, branch, repository_name):
+    print ('''
+    <html><head>
+    <title>'''
+    + title(requested_object, branch, repository_name) +
+    '''</title>
+    <style>$WEBAPP_CSS</style>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    </head><body>
+    ''')
+
+def print_footer():
+    print '''
+    <footer>powered by <a href='https://github.com/klausweiss/agh-git/'>agh-git</a></footer>
+    </body>
+    </html>
+    '''
+
+def print_tree_or_file(basepath, branch, requested_object, repository_name):
+    try:
+        if branch is None:
+            branch = list_branches(basepath)[0]
+
+        if is_dir(branch, requested_object, basepath) or not requested_object:
+            print_tree(basepath, branch, requested_object, repository_name)
+        else:
+            print_file(basepath, branch, requested_object, repository_name)
+    except Exception as e:
+        print_error(e)
+
+def print_tree(basepath, branch, path, repository_name):
+    tree = ls_tree(branch, path, basepath)
+    directories = sorted([name for is_dir, name in tree if is_dir])
+    files = sorted([name for is_dir, name in tree if not is_dir])
+    list_directories(directories, branch, path, repository_name)
+    list_files(files, branch, repository_name)
+
+def list_directories(directories, branch, path, repository_name):
+    print '<ul class=\'tree directories\'>'
+    if path:
+        link = '%s/%s/%s/..' % (get_http_link_base(repository_name), branch, path.strip('/'))
+        print '<li><a href=\'%s\'>..</a></li>' % link
+    for dir in directories:
+        link = '%s/%s/%s' % (get_http_link_base(repository_name), branch, dir)
+        print '<li><a href=\'%s\'>%s</a></li>' % (link, dir)
+    print '</ul>'
+
+def list_files(files, branch, repository_name):
+    print '<ul class=\'tree files\'>'
+    for file in files:
+        link = '%s/%s/%s' % (get_http_link_base(repository_name), branch, file)
+        print '<li><a href=\'%s\'>%s</a></li>' % (link, file)
+    print '</ul>'
+
+
+def print_file(basepath, branch, path, repository_name):
+    contents = file_contents(branch, path, basepath).replace('<', '&lt;').replace('>', '&gt;')
+    print '''<style>$WEBAPP_CODE_CSS</style>'''
+    print '<pre><code>%s</code></pre>' % contents
+    print_js_libraries()
+
+def print_js_libraries():
+    print '''
+          <link rel=\'stylesheet\' href=\'//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.6/styles/default.min.css\'>
+          <script src=\'//cdnjs.cloudflare.com/ajax/libs/highlight.js/8.6/highlight.min.js\'></script>
+          <script src=\'//cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.1.0/highlightjs-line-numbers.min.js\'></script>
+          <script>hljs.initHighlightingOnLoad();hljs.initLineNumbersOnLoad();</script>
+          <!-- custom languages -->
+          <!-- haskell -->
+          <script src=\'//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/languages/haskell.min.js\'></script>
+          '''
+
+def print_error(e):
+    print e
+
+def print_no_such_repo():
+    print '''
+    <div class='error'>
+        <h2>repository not found ):</h2>
+    </div>
+    '''
+
+def print_repo_header(basepath, branch, repository_name):
+    branches = list_branches(basepath)
+    if not branch:
+        branch = branches[0]
+    print '''
+    <header>
+        <h2>%s</h2>
+        <select onchange='location = \\\"%s/\\\" + this.value'>
+            %s
+        </select>
+        <div><span>ssh:</span> <input value='%s' readonly=true onClick='this.select();' /></div>
+        <div><span>http:</span> <input value='%s' readonly=true onClick='this.select();' /></div>
+    </header>
+    ''' % (repository_name,
+           get_http_link_base(repository_name),
+          '\n'.join(['<option value=\'%s\' %s>%s</option>' % (_branch, _branch == branch and 'selected' or '', _branch) for _branch in branches]),
+           get_ssh_link(repository_name),
+           get_http_link(repository_name))
+
+request_uri = os.environ.get('REQUEST_URI')
+repository_name = request_uri.split('/')[3]
+branch = request_uri.count('/') > 3 and request_uri.split('/')[4] or None
+requested_object = '/'.join(request_uri.split('/')[5:])
+
+home = os.path.expanduser('~')
+basepath = '%s/git/%s.git' % (home, repository_name)
+
+print 'Content-type: text/html\n\n'
+print_header(requested_object, branch, repository_name)
+try:
+    if not requested_object:
+        print_repo_header(basepath, branch, repository_name)
+    print_tree_or_file(basepath, branch, requested_object, repository_name)
+except Exception as e:
+        print_no_such_repo()
+print_footer()
+"
+
 ssh -T $1@$2 <<xx029EndOfInput
     mkdir -p ~/public_html/__git
     echo "$HTACCESS" > ~/public_html/.htaccess
     ln -sf -T ~/public_html/__git/ ~/git
-    echo "$WEBAPP" > ~/git/index.py
+    echo "$WEBAPP_INDEX" > ~/git/index.py
+    echo "$WEBAPP_REPO" > ~/git/repository_info.py
     echo "$GIT_CGI" > ~/git/git.cgi
-    chmod 755 ~/git/index.py ~/git/git.cgi
+    chmod 755 ~/git/index.py ~/git/git.cgi ~/git/repository_info.py
     echo "$GIT_HTACCESS" > ~/git/.htaccess
 xx029EndOfInput
 }
