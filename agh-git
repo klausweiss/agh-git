@@ -139,6 +139,7 @@ RewriteEngine  on
 RewriteBase /~$1/
 RewriteRule ^git/(([a-zA-Z0-9._-]*.git/(HEAD|info/refs|objects/(info/[^/]+|[0-9a-f]{2}/[0-9a-f]{38}|pack/pack-[0-9a-f]{40}.(pack|idx))|git-(upload|receive)-pack)))$ __git/git.cgi/\\\$1
 RewriteRule ^git/?$ __git/
+RewriteRule ^git/([a-zA-Z0-9._-]+).git$ git/\\\$1 [R]
 RewriteRule ^git/(([a-zA-Z0-9._-]+/?)+)$ __git/repository_info.py
 
 # python cgi
