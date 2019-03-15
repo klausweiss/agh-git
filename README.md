@@ -2,7 +2,7 @@
 
 agh-git is a shell script that adds a git server functionality to the linux account at your university server (eg. `http://student.university.edu/~yourname`).
 
-[![asciicast](https://asciinema.org/a/p9TgkStGkMwqB1rSGA29T2VPq.png)](https://asciinema.org/a/p9TgkStGkMwqB1rSGA29T2VPq) 
+![demo](https://klausweiss.github.io/agh-git/demo.svg)
 
 ## installation
 
